@@ -1,0 +1,24 @@
+# Headers pour Cloudflare Pages
+# Format: path avec 2 espaces d'indentation pour les headers
+
+# Tous les fichiers XML
+/*.xml
+  Content-Type: application/xml
+
+# Sitemaps spécifiques
+/sitemap.xml
+  Content-Type: application/xml
+
+/sitemap-*.xml
+  Content-Type: application/xml
+
+/sitemap-all.xml
+  Content-Type: application/xml
+
+# Pages HTML
+/*.html
+  Content-Type: text/html; charset=utf-8
+
+# Robots.txt
+/robots.txt
+  Content-Type: text/plain; charset=utf-8

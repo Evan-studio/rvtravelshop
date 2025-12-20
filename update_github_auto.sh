@@ -1,0 +1,100 @@
+#!/bin/bash
+
+# Script de mise à jour automatique vers GitHub (sans confirmation)
+# Usage: ./update_github_auto.sh [message de commit]
+
+set -e  # Arrêter en cas d'erreur
+
+# Couleurs pour les messages
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Fonction pour afficher les messages
+print_info() {
+    echo -e "${BLUE}ℹ️  $1${NC}"
+}
+
+print_success() {
+    echo -e "${GREEN}✅ $1${NC}"
+}
+
+print_warning() {
+    echo -e "${YELLOW}⚠️  $1${NC}"
+}
+
+print_error() {
+    echo -e "${RED}❌ $1${NC}"
+}
+
+# Vérifier qu'on est dans un dépôt Git
+if ! git rev-parse --git-dir > /dev/null 2>&1; then
+    print_error "Ce n'est pas un dépôt Git !"
+    exit 1
+fi
+
+echo "=========================================="
+echo "🚀 MISE À JOUR AUTOMATIQUE VERS GITHUB"
+echo "=========================================="
+echo ""
+
+# Vérifier s'il y a des changements
+if git diff --quiet && git diff --cached --quiet && [ -z "$(git ls-files --others --exclude-standard)" ]; then
+    print_warning "Aucun changement détecté. Rien à commiter."
+    exit 0
+fi
+
+# Afficher le statut
+print_info "Statut actuel du dépôt :"
+git status --short
+echo ""
+
+# Message de commit
+if [ -z "$1" ]; then
+    commit_message="Update: Mise à jour du site $(date +'%Y-%m-%d %H:%M')"
+else
+    commit_message="$1"
+fi
+
+# Ajouter tous les fichiers modifiés
+print_info "Ajout des fichiers modifiés..."
+git add -A
+
+# Compter les fichiers
+files_count=$(git diff --cached --name-only | wc -l | tr -d ' ')
+if [ "$files_count" -eq 0 ]; then
+    print_warning "Aucun fichier à commiter."
+    exit 0
+fi
+
+print_success "$files_count fichier(s) ajouté(s)"
+
+# Créer le commit
+print_info "Création du commit..."
+git commit -m "$commit_message"
+print_success "Commit créé avec succès"
+
+# Afficher les informations du commit
+echo ""
+print_info "Détails du commit :"
+git log -1 --stat --oneline
+echo ""
+
+# Push vers GitHub automatiquement
+print_info "Envoi vers GitHub..."
+if git push origin main; then
+    print_success "✅ Mise à jour envoyée vers GitHub avec succès !"
+    echo ""
+    print_info "🌐 Dépôt: $(git remote get-url origin)"
+else
+    print_error "Erreur lors du push vers GitHub"
+    exit 1
+fi
+
+echo ""
+echo "=========================================="
+print_success "TERMINÉ !"
+echo "=========================================="
+
