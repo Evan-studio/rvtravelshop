@@ -256,14 +256,12 @@ def main():
     print("🔍 Détection des sites de langue...")
     lang_dirs = find_language_directories()
     
-    if not lang_dirs:
-        print("❌ Aucun dossier de langue trouvé")
-        print("   Assurez-vous que chaque langue a un dossier avec index.html et translations.csv")
-        return False
-    
-    print(f"✅ {len(lang_dirs)} site(s) de langue détecté(s):")
-    for lang_dir in lang_dirs:
-        print(f"   - {lang_dir.name}/")
+    if lang_dirs:
+        print(f"✅ {len(lang_dirs)} site(s) de langue détecté(s):")
+        for lang_dir in lang_dirs:
+            print(f"   - {lang_dir.name}/")
+    else:
+        print("ℹ️  Aucun dossier de langue trouvé (génération du sitemap principal uniquement)")
     print()
     
     # 2. Récupérer le domaine

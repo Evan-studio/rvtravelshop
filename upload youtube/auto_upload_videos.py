@@ -22,7 +22,13 @@ from googleapiclient.errors import HttpError
 BASE_DIR = Path(__file__).parent.parent  # Dossier racine du projet (un niveau au-dessus de upload youtube)
 IMAGES_DIR = BASE_DIR / 'images' / 'products'  # Dossier images/products
 CSV_FILE = BASE_DIR / 'CSV' / 'all_products.csv'  # CSV dans le dossier CSV
-CLIENT_SECRETS_FILE = Path(__file__).parent / 'client_secret_938787798816-u7frdh82p7pckpj8hodtr3i1ss3fcjfu.apps.googleusercontent.com.json'
+# Chercher le fichier client_secret JSON (peut avoir différents noms)
+CLIENT_SECRETS_DIR = Path(__file__).parent
+CLIENT_SECRETS_FILES = list(CLIENT_SECRETS_DIR.glob('client_secret_*.json'))
+if CLIENT_SECRETS_FILES:
+    CLIENT_SECRETS_FILE = CLIENT_SECRETS_FILES[0]  # Prendre le premier trouvé
+else:
+    CLIENT_SECRETS_FILE = CLIENT_SECRETS_DIR / 'client_secret_938787798816-u7frdh82p7pckpj8hodtr3i1ss3fcjfu.apps.googleusercontent.com.json'  # Fallback
 CREDENTIALS_FILE = Path(__file__).parent / 'credentials.json'
 TRACKING_FILE = Path(__file__).parent / 'upload_tracking.json'
 
@@ -221,9 +227,17 @@ def upload_video(youtube, video_file, title, description, privacy_status='privat
         return None
         
     except HttpError as e:
+        error_content = str(e.content) if hasattr(e, 'content') else str(e)
         print(f"  ❌ Erreur HTTP lors de l'upload: {e}")
         if e.resp.status == 403:
-            print("  💡 Vérifiez que l'API YouTube Data API v3 est activée dans Google Cloud Console")
+            # Vérifier si c'est une erreur de quota
+            if 'quota' in error_content.lower() or 'quotaExceeded' in error_content or 'dailyUploadLimitExceeded' in error_content:
+                print("  ⚠️  QUOTA YOUTUBE DÉPASSÉ - Aucune vidéo n'a été uploadée")
+                print("  💡 Le quota YouTube est de 6 uploads par jour (compte standard)")
+                print("  💡 Attendez 24h ou utilisez un compte YouTube Partner")
+                return "QUOTA_EXCEEDED"  # Retourner un code spécial pour ne pas marquer comme uploadé
+            else:
+                print("  💡 Vérifiez que l'API YouTube Data API v3 est activée dans Google Cloud Console")
         return None
     except Exception as e:
         print(f"  ❌ Erreur lors de l'upload: {e}")
@@ -423,14 +437,21 @@ def main():
         )
         
         if youtube_url:
-            # Mettre à jour le CSV
-            df.at[row_index, 'youtube_url'] = youtube_url
-            already_uploaded_ids.add(product_id)
-            # Sauvegarde immédiate pour ne pas perdre en cas d'arrêt brutal
-            save_csv_data(df)
-            save_tracking(already_uploaded_ids)
-            uploaded_count += 1
-            print()
+            # Vérifier que ce n'est pas une erreur de quota
+            if youtube_url == "QUOTA_EXCEEDED":
+                print("  ⏸️  Upload arrêté: quota YouTube dépassé")
+                print("  💡 Les vidéos suivantes n'ont pas été uploadées")
+                error_count += 1
+                break  # Arrêter la boucle si quota dépassé
+            else:
+                # Mettre à jour le CSV seulement si l'upload a réussi
+                df.at[row_index, 'youtube_url'] = youtube_url
+                already_uploaded_ids.add(product_id)
+                # Sauvegarde immédiate pour ne pas perdre en cas d'arrêt brutal
+                save_csv_data(df)
+                save_tracking(already_uploaded_ids)
+                uploaded_count += 1
+                print()
         else:
             error_count += 1
             print()
