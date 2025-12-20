@@ -89,7 +89,11 @@ def process_csv(input_file, output_file=None):
     # Lire le CSV
     rows = []
     with open(input_file, 'r', encoding='utf-8') as f:
-        reader = csv.DictReader(f)
+        # Détecter automatiquement le séparateur (virgule ou point-virgule)
+        first_line = f.readline()
+        f.seek(0)
+        delimiter = ';' if ';' in first_line and first_line.count(';') > first_line.count(',') else ','
+        reader = csv.DictReader(f, delimiter=delimiter)
         fieldnames = reader.fieldnames
         
         for row in reader:

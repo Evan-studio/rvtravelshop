@@ -46,7 +46,12 @@ def load_domain_from_csv(lang_dir):
     
     try:
         with open(translations_csv, 'r', encoding='utf-8') as f:
-            reader = csv.DictReader(f)
+            # Détecter automatiquement le séparateur (virgule ou point-virgule)
+            first_line = f.readline()
+            f.seek(0)
+            delimiter = ';' if ';' in first_line and first_line.count(';') > first_line.count(',') else ','
+            
+            reader = csv.DictReader(f, delimiter=delimiter)
             for row in reader:
                 key = row.get('key', '').strip()
                 if key == 'site.domain':
@@ -83,7 +88,12 @@ def get_base_domain():
     if root_translations.exists():
         try:
             with open(root_translations, 'r', encoding='utf-8') as f:
-                reader = csv.DictReader(f)
+                # Détecter automatiquement le séparateur (virgule ou point-virgule)
+                first_line = f.readline()
+                f.seek(0)
+                delimiter = ';' if ';' in first_line and first_line.count(';') > first_line.count(',') else ','
+                
+                reader = csv.DictReader(f, delimiter=delimiter)
                 for row in reader:
                     key = row.get('key', '').strip()
                     if key == 'site.domain':
@@ -99,7 +109,7 @@ def get_base_domain():
             pass
     
     # Fallback par défaut
-    return 'https://www.senseofthailand.com'
+    return 'https://rvtravelshop.com'
 
 def get_lastmod_date(file_path):
     """Récupère la date de modification d'un fichier."""

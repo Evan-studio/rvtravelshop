@@ -82,7 +82,11 @@ def propagate_youtube_urls_from_root():
     root_youtube_map = {}
     try:
         with open(root_csv, 'r', encoding='utf-8', newline='') as f:
-            reader = csv.DictReader(f)
+            # Détecter automatiquement le séparateur (virgule ou point-virgule)
+            first_line = f.readline()
+            f.seek(0)
+            delimiter = ';' if ';' in first_line and first_line.count(';') > first_line.count(',') else ','
+            reader = csv.DictReader(f, delimiter=delimiter)
             for row in reader:
                 pid = (row.get('product_id') or '').strip()
                 yt = (row.get('youtube_url') or '').strip()
@@ -110,7 +114,11 @@ def propagate_youtube_urls_from_root():
 
         try:
             with open(lang_csv, 'r', encoding='utf-8', newline='') as f:
-                reader = csv.DictReader(f)
+                # Détecter automatiquement le séparateur (virgule ou point-virgule)
+                first_line = f.readline()
+                f.seek(0)
+                delimiter = ';' if ';' in first_line and first_line.count(';') > first_line.count(',') else ','
+                reader = csv.DictReader(f, delimiter=delimiter)
                 rows = list(reader)
                 fieldnames = reader.fieldnames or []
 

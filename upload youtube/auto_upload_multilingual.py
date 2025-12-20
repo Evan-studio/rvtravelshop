@@ -126,7 +126,11 @@ def get_site_url(lang_dir):
     if translations_csv.exists():
         try:
             with open(translations_csv, 'r', encoding='utf-8') as f:
-                reader = csv.DictReader(f)
+                # Détecter automatiquement le séparateur (virgule ou point-virgule)
+                first_line = f.readline()
+                f.seek(0)
+                delimiter = ';' if ';' in first_line and first_line.count(';') > first_line.count(',') else ','
+                reader = csv.DictReader(f, delimiter=delimiter)
                 for row in reader:
                     if row.get('key', '').strip() == 'site.domain':
                         url = row.get('en', '').strip() or row.get(list(row.keys())[1], '').strip()

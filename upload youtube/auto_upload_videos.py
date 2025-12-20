@@ -42,7 +42,12 @@ def get_site_url():
     if translations_csv.exists():
         try:
             with open(translations_csv, 'r', encoding='utf-8') as f:
-                reader = csv.DictReader(f)
+                # Détecter automatiquement le séparateur (virgule ou point-virgule)
+                first_line = f.readline()
+                f.seek(0)
+                delimiter = ';' if ';' in first_line and first_line.count(';') > first_line.count(',') else ','
+                
+                reader = csv.DictReader(f, delimiter=delimiter)
                 for row in reader:
                     if row.get('key', '').strip() == 'site.domain':
                         url = row.get('en', '').strip()
@@ -52,7 +57,7 @@ def get_site_url():
             print(f"⚠️  Erreur lors de la lecture de translations.csv: {e}")
     
     # Fallback
-    return "https://esport4all.com"
+    return "https://rvtravelshop.com"
 
 def load_tracking():
     """Charge le fichier de suivi des uploads pour éviter les doublons."""
