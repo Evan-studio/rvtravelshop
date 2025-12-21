@@ -8,7 +8,7 @@ import csv
 from pathlib import Path
 
 BASE_DIR = Path(__file__).parent
-CAR_PRODUCTS_CSV = BASE_DIR / 'CSV' / 'products_auto_voiture.csv'
+CAR_PRODUCTS_CSV = BASE_DIR / 'CSV' / 'products_voiture_auto.csv'
 
 def detect_delimiter(file_path):
     """Détecte automatiquement le séparateur CSV."""
@@ -111,7 +111,7 @@ def remove_product_images(product_ids_to_remove):
 
 def main():
     print("=" * 70)
-    print("🗑️  SUPPRESSION DES 202 PRODUITS AUTO/VOITURE")
+    print("🗑️  SUPPRESSION DES PRODUITS AUTO/VOITURE")
     print("=" * 70)
     print()
     
