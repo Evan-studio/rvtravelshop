@@ -41,5 +41,12 @@ images/video/**
 *.avi
 *.mkv
 
+# Exclure les fichiers backup CSV (trop volumineux)
+**/*.csv.backup
+**/*.csv.backup*
+**/all_products.csv.backup*
+CSV/*.backup*
+**/CSV/*.backup*
+
 
 
