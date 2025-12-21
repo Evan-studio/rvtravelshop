@@ -30,8 +30,11 @@ INCLUDE_FILES = {
 }
 
 # Dossiers à copier complètement
+# NOTE: Les dossiers de langue (fr/, de/, etc.) sont exclus pour respecter la limite de 20,000 fichiers
+# Les langues peuvent être ajoutées plus tard si nécessaire
 INCLUDE_DIRS = {
-    'images', 'page_html', 'fr', 'de', 'es', 'it', 'pt', 'nl', 'ru', 'pl'
+    'images', 'page_html'
+    # 'fr', 'de', 'es', 'it', 'pt', 'nl', 'ru', 'pl'  # Exclus temporairement
 }
 
 # Dossiers à exclure
