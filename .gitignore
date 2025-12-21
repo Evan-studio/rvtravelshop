@@ -48,6 +48,9 @@ images/video/**
 CSV/*.backup*
 **/CSV/*.backup*
 
-
+# Exclure les dossiers backup d'images (trop volumineux pour GitHub/Cloudflare)
+images/products_backup*/
+images/**/products_backup*/
+**/products_backup*/
 
 dist/
