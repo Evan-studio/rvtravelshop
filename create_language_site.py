@@ -60,7 +60,11 @@ def detect_source_language_code(source_dir):
     if translations_csv.exists():
         try:
             with open(translations_csv, 'r', encoding='utf-8') as f:
-                reader = csv.DictReader(f)
+                # Détecter automatiquement le séparateur (virgule ou point-virgule)
+                first_line = f.readline()
+                f.seek(0)
+                delimiter = ';' if ';' in first_line and first_line.count(';') > first_line.count(',') else ','
+                reader = csv.DictReader(f, delimiter=delimiter)
                 fieldnames = reader.fieldnames
                 if fieldnames:
                     # Chercher une colonne *_auto
@@ -333,7 +337,11 @@ def update_csv_formulas(lang_dir, source_lang_code, target_lang_code):
     translations_csv = lang_dir / 'translations.csv'
     if translations_csv.exists():
         with open(translations_csv, 'r', encoding='utf-8') as f:
-            reader = csv.DictReader(f)
+            # Détecter automatiquement le séparateur (virgule ou point-virgule)
+            first_line = f.readline()
+            f.seek(0)
+            delimiter = ';' if ';' in first_line and first_line.count(';') > first_line.count(',') else ','
+            reader = csv.DictReader(f, delimiter=delimiter)
             rows = list(reader)
             fieldnames = list(reader.fieldnames)
         
@@ -431,7 +439,11 @@ def update_csv_formulas(lang_dir, source_lang_code, target_lang_code):
     # Lire depuis l'ORIGINAL (source de vérité pour les product_id)
     print(f"  📖 Lecture depuis le fichier ORIGINAL: CSV/all_products.csv")
     with open(original_products_csv, 'r', encoding='utf-8') as f:
-        reader = csv.DictReader(f)
+        # Détecter automatiquement le séparateur (virgule ou point-virgule)
+        first_line = f.readline()
+        f.seek(0)
+        delimiter = ';' if ';' in first_line and first_line.count(';') > first_line.count(',') else ','
+        reader = csv.DictReader(f, delimiter=delimiter)
         rows = list(reader)
         fieldnames = list(reader.fieldnames)  # Garder toutes les colonnes originales
     
