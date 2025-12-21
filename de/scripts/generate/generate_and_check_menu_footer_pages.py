@@ -118,7 +118,7 @@ def add_canonical_and_hreflang(html, translations, page_path):
     for item in root_dir.iterdir():
         if (item.is_dir() and not item.name.startswith('.') and 
             item.name not in ['APPLI:SCRIPT aliexpress', 'scripts', 'config', 'images', 'page_html', 
-                              'upload_cloudflare', 'sauv', 'CSV', '__pycache__', '.git', 'node_modules', 'upload youtube'] and
+                              'upload_cloudflare', 'sauv', 'CSV', '__pycache__', '.git', 'node_modules', 'upload youtube', 'dist'] and
             (item / 'index.html').exists()):
             lang = item.name.lower()
             available_languages.append((lang, f'/{lang}'))

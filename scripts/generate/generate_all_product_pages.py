@@ -59,7 +59,11 @@ def load_translations_from_csv():
     
     try:
         with open(TRANSLATIONS_CSV, 'r', encoding='utf-8') as f:
-            reader = csv.DictReader(f)
+            # Détecter automatiquement le séparateur (virgule ou point-virgule)
+            first_line = f.readline()
+            f.seek(0)  # Revenir au début
+            delimiter = ';' if ';' in first_line and first_line.count(';') > first_line.count(',') else ','
+            reader = csv.DictReader(f, delimiter=delimiter)
             fieldnames = reader.fieldnames
             
             # Chercher la colonne de langue : {lang_code}_auto en priorité, puis {lang_code}, puis 'en'
@@ -223,23 +227,48 @@ def generate_footer_html(footer_items, translations):
     return footer_html
 
 def extract_images_from_csv(image_paths_str, product_id):
-    """Extrait toutes les images depuis le CSV et les convertit en chemins relatifs."""
+    """Extrait les 3 premières images depuis le CSV et les convertit en chemins relatifs.
+    Vérifie que les fichiers existent réellement avant de les ajouter."""
     if not image_paths_str:
         return []
     
     # Nettoyer le product_id (enlever l'apostrophe si présente)
     clean_product_id = str(product_id).strip().lstrip("'")
     
+    # Déterminer le chemin de base pour vérifier l'existence des fichiers
+    # Si BASE_DIR est un dossier de langue (ex: fr/), remonter à la racine
+    root_dir = BASE_DIR
+    if len(BASE_DIR.name) == 2 and BASE_DIR.name.isalpha():
+        root_dir = BASE_DIR.parent
+    
+    images_dir = root_dir / 'images' / 'products' / clean_product_id
+    
     images = image_paths_str.split('|')
     result = []
     
-    for img_path in images:
+    for i, img_path in enumerate(images):
+        if i >= 3:  # Limiter aux 3 premières images
+            break
         img_path = img_path.strip()
         if not img_path:
             continue
         
         # Extraire le nom du fichier (image_1.jpg, image_2.jpg, etc.)
         filename = Path(img_path).name
+        
+        # Vérifier que le fichier existe réellement
+        image_file = images_dir / filename
+        if not image_file.exists():
+            # Essayer avec différentes extensions
+            found = False
+            for ext in ['.webp', '.jpg', '.jpeg', '.png']:
+                alt_file = images_dir / f"{Path(filename).stem}{ext}"
+                if alt_file.exists():
+                    filename = alt_file.name
+                    found = True
+                    break
+            if not found:
+                continue  # Passer cette image si elle n'existe pas
         
         # Chemin relatif depuis page_html/products/ vers images/products/
         # Les images sont dans le dossier parent, donc ../../../images/
@@ -353,7 +382,7 @@ def generate_product_page_html(product, translations):
     for item in root_dir.iterdir():
         if (item.is_dir() and not item.name.startswith('.') and 
             item.name not in ['APPLI:SCRIPT aliexpress', 'scripts', 'config', 'images', 'page_html', 
-                              'upload_cloudflare', 'sauv', 'CSV', '__pycache__', '.git', 'node_modules', 'upload youtube'] and
+                              'upload_cloudflare', 'sauv', 'CSV', '__pycache__', '.git', 'node_modules', 'upload youtube', 'dist'] and
             (item / 'index.html').exists()):
             lang = item.name.lower()
             available_languages.append((lang, f'/{lang}'))
@@ -402,10 +431,19 @@ def generate_product_page_html(product, translations):
             html
         )
     
-    # 3. Mettre à jour la favicon avec URL absolue
+    # 3. Modifier le CSS des thumbnails pour limiter à 3 colonnes maximum
+    # Remplacer repeat(4,1fr) par repeat(3,1fr) pour éviter les espaces vides
+    # Le CSS peut être sur une seule ligne ou plusieurs lignes
+    html = re.sub(
+        r'grid-template-columns:repeat\(4,1fr\)',
+        'grid-template-columns:repeat(3,1fr)',
+        html
+    )
+    
+    # 4. Mettre à jour la favicon avec URL absolue
     html = update_favicon_absolute(html, translations)
     
-    # 4. Mettre à jour le logo (chemin relatif)
+    # 5. Mettre à jour le logo (chemin relatif)
     # Le template peut avoir un logo vide ou avec href
     html = re.sub(
         r'<a[^>]*class="logo"[^>]*>.*?</a>',
@@ -414,7 +452,7 @@ def generate_product_page_html(product, translations):
         flags=re.DOTALL
     )
     
-    # 5. Remplacer le menu
+    # 6. Remplacer le menu
     html = re.sub(
         r'<ul class="menu"[^>]*>.*?</ul>',
         f'<ul class="menu" id="menu">\n{menu_html}\n</ul>',
@@ -422,7 +460,7 @@ def generate_product_page_html(product, translations):
         flags=re.DOTALL
     )
     
-    # 6. Générer le contenu du produit (remplacer le div product-container)
+    # 7. Générer le contenu du produit (remplacer le div product-container)
     product_content = f'''<div class="product-header">
 <div class="product-images">
 <img src="{main_image}" alt="{escape_html_attr(title)}" class="main-image" id="main-image">
@@ -433,16 +471,16 @@ def generate_product_page_html(product, translations):
         product_content += f'<iframe id="main-video" class="main-video" style="display:none;width:100%;aspect-ratio:1;border:none;border-radius:8px;" src="https://www.youtube.com/embed/{youtube_id}" allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture" allowfullscreen></iframe>\n'
     
     # Ajouter les miniatures si plusieurs images ou vidéo YouTube
+    # Comportement identique au site parent : afficher les miniatures si plus d'1 image OU si vidéo YouTube
     if len(images) > 1 or has_youtube:
         product_content += '<div class="thumbnails">\n'
+        # Ajouter toutes les images disponibles
         for idx, img in enumerate(images):
             active_class = 'active' if idx == 0 else ''
             product_content += f'<img src="{img}" alt="Image {idx+1}" class="thumbnail {active_class}" onclick="showImage(\'{img}\',event)">\n'
-        
-        # Ajouter la miniature vidéo si YouTube existe
+        # Ajouter la vidéo YouTube si elle existe (après les images)
         if has_youtube:
             product_content += f'<div class="thumbnail-video" onclick="showVideo(event)"><img src="{main_image}" alt="Vidéo"></div>\n'
-        
         product_content += '</div>\n'
     
     product_content += '</div>\n'
@@ -642,7 +680,11 @@ def load_products_from_csv():
     
     try:
         with open(PRODUCTS_CSV, 'r', encoding='utf-8') as f:
-            reader = csv.DictReader(f)
+            # Détecter automatiquement le séparateur (virgule ou point-virgule)
+            first_line = f.readline()
+            f.seek(0)  # Revenir au début
+            delimiter = ';' if ';' in first_line and first_line.count(';') > first_line.count(',') else ','
+            reader = csv.DictReader(f, delimiter=delimiter)
             fieldnames = reader.fieldnames
             
             # Chercher les colonnes traduites : {col}_{lang_code}_auto en priorité, puis {col}
