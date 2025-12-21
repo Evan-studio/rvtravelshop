@@ -59,11 +59,7 @@ def load_translations_from_csv():
     
     try:
         with open(TRANSLATIONS_CSV, 'r', encoding='utf-8') as f:
-            # Détecter automatiquement le séparateur (virgule ou point-virgule)
-            first_line = f.readline()
-            f.seek(0)
-            delimiter = ';' if ';' in first_line and first_line.count(';') > first_line.count(',') else ','
-            reader = csv.DictReader(f, delimiter=delimiter)
+            reader = csv.DictReader(f)
             fieldnames = reader.fieldnames
             
             # Chercher la colonne de langue : {lang_code}_auto en priorité, puis {lang_code}, puis 'en'
@@ -646,11 +642,7 @@ def load_products_from_csv():
     
     try:
         with open(PRODUCTS_CSV, 'r', encoding='utf-8') as f:
-            # Détecter automatiquement le séparateur (virgule ou point-virgule)
-            first_line = f.readline()
-            f.seek(0)
-            delimiter = ';' if ';' in first_line and first_line.count(';') > first_line.count(',') else ','
-            reader = csv.DictReader(f, delimiter=delimiter)
+            reader = csv.DictReader(f)
             fieldnames = reader.fieldnames
             
             # Chercher les colonnes traduites : {col}_{lang_code}_auto en priorité, puis {col}
