@@ -711,6 +711,59 @@ if __name__ == '__main__':
     script_path.chmod(0o755)  # Rendre exécutable
     print(f"  ✅ Script generate_all_{target_lang_code}.py créé")
 
+def create_csv_translation_scripts(lang_dir):
+    """Copie les scripts de division/fusion CSV pour la traduction dans le dossier de langue."""
+    print(f"\n📝 Copie des scripts de traduction CSV pour {lang_dir.name}...")
+    
+    # Chercher les scripts dans le dossier scripts/csv_translation/ à la racine
+    source_scripts_dir = BASE_DIR / 'scripts' / 'csv_translation'
+    source_scripts = []
+    
+    if source_scripts_dir.exists():
+        # Chercher dans scripts/csv_translation/
+        split_script = source_scripts_dir / 'split_csv_for_translation.py'
+        merge_script = source_scripts_dir / 'merge_translated_csv.py'
+        if split_script.exists():
+            source_scripts.append(split_script)
+        if merge_script.exists():
+            source_scripts.append(merge_script)
+    
+    if not source_scripts:
+        print(f"  ⚠️  Scripts de traduction CSV non trouvés dans scripts/csv_translation/")
+        print(f"     Les scripts doivent être dans scripts/csv_translation/ à la racine")
+        return
+    
+    # S'assurer que le dossier de langue existe
+    lang_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Copier les scripts dans le dossier de langue
+    for source_script in source_scripts:
+        target_script = lang_dir / source_script.name
+        # Éviter de copier sur le même fichier
+        if source_script.resolve() != target_script.resolve():
+            shutil.copy2(source_script, target_script)
+            target_script.chmod(0o755)  # Rendre exécutable
+            print(f"  ✅ {source_script.name} copié")
+        else:
+            print(f"  ℹ️  {source_script.name} déjà présent (même fichier)")
+    
+    # Créer les dossiers to_translate et translated
+    to_translate_dir = lang_dir / 'to_translate'
+    translated_dir = lang_dir / 'translated'
+    
+    to_translate_dir.mkdir(exist_ok=True)
+    translated_dir.mkdir(exist_ok=True)
+    
+    print(f"  ✅ Dossiers créés: to_translate/ et translated/")
+    print()
+    print(f"💡 Pour diviser le CSV en 4 parties pour la traduction:")
+    print(f"   cd {lang_dir.name}")
+    print(f"   python3 split_csv_for_translation.py")
+    print()
+    print(f"💡 Pour fusionner les CSV traduits:")
+    print(f"   cd {lang_dir.name}")
+    print(f"   python3 merge_translated_csv.py")
+
 def create_upload_youtube_folder(lang_dir, lang_code):
     """Copie tout le dossier upload youtube pour une langue."""
     print(f"\n📹 Copie du dossier upload youtube pour {lang_code}...")
@@ -810,6 +863,9 @@ def main():
     # 6. Créer le dossier upload youtube pour cette langue
     create_upload_youtube_folder(lang_dir, target_lang_code)
     
+    # 7. Copier les scripts de division/fusion CSV pour la traduction
+    create_csv_translation_scripts(lang_dir)
+    
     print("\n" + "=" * 70)
     print("✅ CRÉATION TERMINÉE!")
     print("=" * 70)
@@ -817,6 +873,11 @@ def main():
     print(f"📝 Formules modifiées: GOOGLETRANSLATE(...,\"{source_lang_code}\";\"{target_lang_code}\")")
     print(f"🔧 Scripts modifiés: {target_lang_code}_auto et lang=\"{target_lang_code}\"")
     print(f"🌐 hreflang modifié: {target_lang_code}")
+    print(f"✂️  Scripts de traduction CSV: split_csv_for_translation.py et merge_translated_csv.py")
+    print()
+    print(f"💡 Pour diviser le CSV en 4 parties pour la traduction:")
+    print(f"   cd {lang_dir.name}")
+    print(f"   python3 split_csv_for_translation.py")
     print()
     print(f"💡 Pour générer le site:")
     print(f"   cd {lang_dir.name}")
