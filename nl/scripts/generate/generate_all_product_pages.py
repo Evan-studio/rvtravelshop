@@ -280,7 +280,8 @@ def extract_images_from_csv(image_paths_str, product_id):
 def get_reviews_count(product_id):
     """Génère le nombre d'avis (même système que pages catégorie)."""
     if not product_id:
-        return random.randint(15, 150)
+        # Nettoyer le product_id (enlever l'apostrophe si présente) pour le nom de fichier
+        clean_product_id = str(product_id).strip().lstrip("'")        return random.randint(15, 150)
     
     try:
         # Nettoyer le product_id et extraire les 6 derniers chiffres
@@ -706,7 +707,8 @@ def load_products_from_csv():
             for row in reader:
                 product_id = row.get('product_id', '').strip()
                 if not product_id:
-                    continue
+        # Nettoyer le product_id (enlever l'apostrophe si présente) pour le nom de fichier
+        clean_product_id = str(product_id).strip().lstrip("'")                    continue
                 
                 # Ne garder que les produits avec un lien d'affiliation
                 affiliate_link = row.get('affiliate_links', '').strip()
@@ -780,12 +782,13 @@ def main():
     for product in products:
         product_id = product.get('id', '')
         if not product_id:
-            continue
+        # Nettoyer le product_id (enlever l'apostrophe si présente) pour le nom de fichier
+        clean_product_id = str(product_id).strip().lstrip("'")            continue
         
         try:
             html = generate_product_page_html(product, translations)
             if html:
-                output_file = PRODUCTS_DIR / f"produit-{product_id}.html"
+                output_file = PRODUCTS_DIR / f"produit-{clean_product_id}.html"
                 output_file.write_text(html, encoding='utf-8')
                 success_count += 1
                 if success_count % 10 == 0:

@@ -799,10 +799,13 @@ def main():
         if not product_id:
             continue
         
+        # Nettoyer le product_id (enlever l'apostrophe si présente) pour le nom de fichier
+        clean_product_id = str(product_id).strip().lstrip("'")
+        
         try:
             html = generate_product_page_html(product, translations)
             if html:
-                output_file = PRODUCTS_DIR / f"produit-{product_id}.html"
+                output_file = PRODUCTS_DIR / f"produit-{clean_product_id}.html"
                 output_file.write_text(html, encoding='utf-8')
                 success_count += 1
                 if success_count % 10 == 0:
