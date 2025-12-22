@@ -94,23 +94,41 @@ def get_translation(key, translations, default=''):
     return translations.get(key, default)
 
 def update_favicon_absolute(html, translations):
-    """Met à jour la favicon avec un chemin racine (compatible local + prod)."""
-    favicon_url = "/images/favicon/favicon.ico"
-    # Remplacer tous les chemins de favicon par le chemin racine
+    """Met à jour la favicon avec une URL absolue pour que Google la trouve."""
+    domain = get_translation('site.domain', translations, 'https://rvtravelshop.com')
+    domain = domain.rstrip('/') if domain else 'https://rvtravelshop.com'
+    favicon_url = f"{domain}/images/favicon/favicon.ico"
+    
+    # Supprimer toutes les anciennes balises favicon
     html = re.sub(
-        r'<link rel="icon"[^>]*href="[^"]*favicon[^"]*"[^>]*>',
-        f'<link rel="icon" type="image/x-icon" href="{favicon_url}">',
+        r'<link rel="(icon|shortcut icon|apple-touch-icon)"[^>]*>',
+        '',
         html,
         flags=re.IGNORECASE
     )
-    # Ajouter aussi apple-touch-icon si nécessaire
-    if '<link rel="apple-touch-icon"' not in html:
+    
+    # Ajouter toutes les balises favicon nécessaires pour Google (comme PrestaShop)
+    favicon_tags = f'''<link rel="icon" type="image/vnd.microsoft.icon" href="{escape_html_attr(favicon_url)}">
+<link rel="shortcut icon" type="image/x-icon" href="{escape_html_attr(favicon_url)}">
+<link rel="icon" type="image/x-icon" href="{escape_html_attr(favicon_url)}">
+<link rel="apple-touch-icon" href="{escape_html_attr(favicon_url)}">'''
+    
+    # Insérer après <title> ou après <head>
+    if re.search(r'</title>', html):
         html = re.sub(
-            r'(<link rel="icon"[^>]*>)',
-            r'\1\n<link rel="apple-touch-icon" href="' + favicon_url + '">',
+            r'(</title>)',
+            r'\1\n' + favicon_tags,
             html,
-            flags=re.IGNORECASE
+            count=1
         )
+    elif re.search(r'<head[^>]*>', html):
+        html = re.sub(
+            r'(<head[^>]*>)',
+            r'\1\n' + favicon_tags,
+            html,
+            count=1
+        )
+    
     return html
 
 def escape_html_attr(text):

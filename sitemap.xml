@@ -2,14 +2,30 @@
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <sitemap>
     <loc>https://rvtravelshop.com/sitemap-en.xml</loc>
-    <lastmod>2025-12-21</lastmod>
+    <lastmod>2025-12-22</lastmod>
   </sitemap>
   <sitemap>
     <loc>https://rvtravelshop.com/sitemap-de.xml</loc>
-    <lastmod>2025-12-21</lastmod>
+    <lastmod>2025-12-22</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>https://rvtravelshop.com/sitemap-fi.xml</loc>
+    <lastmod>2025-12-22</lastmod>
   </sitemap>
   <sitemap>
     <loc>https://rvtravelshop.com/sitemap-fr.xml</loc>
-    <lastmod>2025-12-21</lastmod>
+    <lastmod>2025-12-22</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>https://rvtravelshop.com/sitemap-nl.xml</loc>
+    <lastmod>2025-12-22</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>https://rvtravelshop.com/sitemap-no.xml</loc>
+    <lastmod>2025-12-22</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>https://rvtravelshop.com/sitemap-sv.xml</loc>
+    <lastmod>2025-12-22</lastmod>
   </sitemap>
 </sitemapindex>
