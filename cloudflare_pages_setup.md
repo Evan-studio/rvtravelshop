@@ -39,3 +39,4 @@
 - **Proxy désactivé** (nuage gris) : DNS seulement
 - Pour Pages, utilisez **Proxy activé** (recommandé)
 
+

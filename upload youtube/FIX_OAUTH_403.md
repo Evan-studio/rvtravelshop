@@ -41,3 +41,4 @@ Si vous voulez que n'importe qui puisse utiliser l'application :
 - Chaque utilisateur doit être ajouté manuellement
 - Les tokens expirent après 7 jours en mode test (mais peuvent être rafraîchis)
 
+
