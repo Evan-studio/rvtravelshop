@@ -19,44 +19,41 @@ from googleapiclient.http import MediaFileUpload
 from googleapiclient.errors import HttpError
 
 # Chemins
-BASE_DIR = Path(__file__).parent.parent  # Dossier racine du projet (un niveau au-dessus de upload youtube)
+BASE_DIR = Path(__file__).parent.parent.parent  # Dossier racine du projet (deux niveaux au-dessus de upload youtube)
 IMAGES_DIR = BASE_DIR / 'images' / 'products'  # Dossier images/products
-CSV_FILE = BASE_DIR / 'CSV' / 'all_products.csv'  # CSV dans le dossier CSV
-# Chercher le fichier client_secret JSON (peut avoir différents noms)
-CLIENT_SECRETS_DIR = Path(__file__).parent
-CLIENT_SECRETS_FILES = list(CLIENT_SECRETS_DIR.glob('client_secret_*.json'))
-if CLIENT_SECRETS_FILES:
-    CLIENT_SECRETS_FILE = CLIENT_SECRETS_FILES[0]  # Prendre le premier trouvé
-else:
-    CLIENT_SECRETS_FILE = CLIENT_SECRETS_DIR / 'client_secret_938787798816-u7frdh82p7pckpj8hodtr3i1ss3fcjfu.apps.googleusercontent.com.json'  # Fallback
+CSV_FILE = Path(__file__).parent.parent / 'CSV' / 'all_products.csv'  # CSV dans le dossier CSV du dossier fr
+CLIENT_SECRETS_FILE = Path(__file__).parent / 'client_secret_938787798816-u7frdh82p7pckpj8hodtr3i1ss3fcjfu.apps.googleusercontent.com.json'
 CREDENTIALS_FILE = Path(__file__).parent / 'credentials.json'
 TRACKING_FILE = Path(__file__).parent / 'upload_tracking.json'
 
-# Scopes nécessaires pour uploader des vidéos
-SCOPES = ['https://www.googleapis.com/auth/youtube.upload']
+# Scopes nécessaires pour uploader des vidéos et lire les infos de la chaîne
+SCOPES = [
+    'https://www.googleapis.com/auth/youtube.upload',
+    'https://www.googleapis.com/auth/youtube.readonly'
+]
 
 def get_site_url():
     """Récupère l'URL du site depuis translations.csv."""
-    # Chemin vers translations.csv à la racine du projet
-    translations_csv = BASE_DIR / 'translations.csv'
+    # Chemin vers translations.csv dans le dossier fr
+    translations_csv = Path(__file__).parent.parent / 'translations.csv'
     if translations_csv.exists():
         try:
             with open(translations_csv, 'r', encoding='utf-8') as f:
-                # Détecter automatiquement le séparateur (virgule ou point-virgule)
-                first_line = f.readline()
-                f.seek(0)
-                delimiter = ';' if ';' in first_line and first_line.count(';') > first_line.count(',') else ','
-                
-                reader = csv.DictReader(f, delimiter=delimiter)
+                reader = csv.DictReader(f)
                 for row in reader:
                     if row.get('key', '').strip() == 'site.domain':
-                        url = row.get('en', '').strip()
-                        if url:
-                            return url.rstrip('/')
+                        # Chercher dans toutes les colonnes (fr, en, etc.)
+                        # Ignorer les colonnes qui ne sont pas des URLs (ne commencent pas par http)
+                        for col in row.keys():
+                            if col != 'key' and row.get(col, '').strip():
+                                url = row.get(col, '').strip()
+                                # Vérifier que c'est bien une URL (commence par http:// ou https://)
+                                if url and (url.startswith('http://') or url.startswith('https://')):
+                                    return url.rstrip('/')
         except Exception as e:
             print(f"⚠️  Erreur lors de la lecture de translations.csv: {e}")
     
-    # Fallback
+    # Fallback avec le bon domaine
     return "https://rvtravelshop.com"
 
 def load_tracking():
@@ -130,6 +127,27 @@ def get_authenticated_service():
             token.write(credentials.to_json())
     
     return build('youtube', 'v3', credentials=credentials)
+
+def get_channel_info(youtube):
+    """Récupère les informations de la chaîne YouTube utilisée."""
+    try:
+        request = youtube.channels().list(part='snippet,contentDetails,statistics', mine=True)
+        response = request.execute()
+        
+        if response.get('items'):
+            channel = response['items'][0]
+            channel_id = channel['id']
+            channel_title = channel['snippet']['title']
+            channel_url = f"https://www.youtube.com/channel/{channel_id}"
+            return {
+                'id': channel_id,
+                'title': channel_title,
+                'url': channel_url
+            }
+        return None
+    except Exception as e:
+        print(f"⚠️  Erreur lors de la récupération des infos de la chaîne: {e}")
+        return None
 
 def find_video_in_folder(folder_path):
     """
@@ -232,17 +250,9 @@ def upload_video(youtube, video_file, title, description, privacy_status='privat
         return None
         
     except HttpError as e:
-        error_content = str(e.content) if hasattr(e, 'content') else str(e)
         print(f"  ❌ Erreur HTTP lors de l'upload: {e}")
         if e.resp.status == 403:
-            # Vérifier si c'est une erreur de quota
-            if 'quota' in error_content.lower() or 'quotaExceeded' in error_content or 'dailyUploadLimitExceeded' in error_content:
-                print("  ⚠️  QUOTA YOUTUBE DÉPASSÉ - Aucune vidéo n'a été uploadée")
-                print("  💡 Le quota YouTube est de 6 uploads par jour (compte standard)")
-                print("  💡 Attendez 24h ou utilisez un compte YouTube Partner")
-                return "QUOTA_EXCEEDED"  # Retourner un code spécial pour ne pas marquer comme uploadé
-            else:
-                print("  💡 Vérifiez que l'API YouTube Data API v3 est activée dans Google Cloud Console")
+            print("  💡 Vérifiez que l'API YouTube Data API v3 est activée dans Google Cloud Console")
         return None
     except Exception as e:
         print(f"  ❌ Erreur lors de l'upload: {e}")
@@ -268,15 +278,15 @@ def build_description(product_id, description_short, site_url):
     """
     Construit la description YouTube avec un lien vers le site au début.
     """
-    # Construire l'URL de la page produit
-    product_url = f"{site_url}/page_html/products/produit-{product_id}.html"
+    # Construire l'URL de la page produit (version française, sans .html)
+    product_url = f"{site_url}/fr/page_html/products/produit-{product_id}"
     
     # Nettoyer la description
     clean_desc = clean_text(description_short)
     
-    # Description en anglais avec le lien au début
-    description = f"Visit our website for more details: {product_url}\n\n"
-    description += clean_desc if clean_desc else "Product details available on our website."
+    # Description en français avec le lien au début
+    description = f"Visitez notre site web pour plus de détails : {product_url}\n\n"
+    description += clean_desc if clean_desc else "Détails du produit disponibles sur notre site web."
     
     # Limiter à 5000 caractères (limite YouTube)
     if len(description) > 5000:
@@ -315,10 +325,16 @@ def save_csv_data(df):
         print(f"❌ Erreur lors de la sauvegarde du CSV: {e}")
         return False
 
-def main():
-    """Fonction principale."""
+def main(test_mode=False):
+    """Fonction principale.
+    
+    Args:
+        test_mode: Si True, upload uniquement la première vidéo et attend confirmation
+    """
     print("=" * 70)
     print("🚀 SCRIPT D'UPLOAD AUTOMATIQUE YOUTUBE")
+    if test_mode:
+        print("🧪 MODE TEST ACTIVÉ - Upload de la première vidéo uniquement")
     print("=" * 70)
     print()
     
@@ -348,6 +364,14 @@ def main():
     try:
         youtube = get_authenticated_service()
         print("✅ Authentification réussie")
+        
+        # Afficher les informations de la chaîne
+        channel_info = get_channel_info(youtube)
+        if channel_info:
+            print(f"📺 Chaîne YouTube: {channel_info['title']}")
+            print(f"🔗 URL: {channel_info['url']}")
+        else:
+            print("⚠️  Impossible de récupérer les informations de la chaîne")
         print()
     except Exception as e:
         print(f"❌ Erreur lors de l'authentification: {e}")
@@ -373,6 +397,8 @@ def main():
         print(f"ℹ️  {len(csv_done)} vidéos déjà marquées dans le CSV")
     already_uploaded_ids |= csv_done
     
+    # Collecter toutes les vidéos à uploader
+    videos_to_upload = []
     for product_dir in sorted(IMAGES_DIR.iterdir()):
         if not product_dir.is_dir():
             continue
@@ -405,29 +431,68 @@ def main():
             skipped_count += 1
             continue
         
+        # Ajouter à la liste des vidéos à uploader
+        videos_to_upload.append((product_id, video_file, product_row, row_index))
+    
+    print(f"📹 {len(videos_to_upload)} vidéo(s) trouvée(s) à uploader")
+    print()
+    
+    if not videos_to_upload:
+        print("ℹ️  Aucune vidéo à uploader")
+        return
+    
+    # En mode test, ne traiter que la première vidéo d'abord
+    if test_mode:
+        print("🧪 MODE TEST: Upload de la première vidéo uniquement")
+        print()
+        videos_to_process = videos_to_upload[:1]
+        remaining_videos = videos_to_upload[1:]
+    else:
+        videos_to_process = videos_to_upload
+        remaining_videos = []
+    
+    # Uploader les vidéos
+    idx = 0
+    while idx < len(videos_to_process):
+        product_id, video_file, product_row, row_index = videos_to_process[idx]
         print(f"📹 Produit {product_id}: {video_file.name}")
         
-        # Récupérer les infos du CSV
-        name = str(product_row.iloc[0]['name']).strip() if pd.notna(product_row.iloc[0]['name']) else ''
-        description_short = str(product_row.iloc[0]['description_short']).strip() if pd.notna(product_row.iloc[0]['description_short']) else ''
+        # Récupérer les infos françaises du CSV
+        # Priorité: titre_fr_auto > titre > name_fr_auto > name
+        name = ''
+        if 'titre_fr_auto' in product_row.columns and pd.notna(product_row.iloc[0]['titre_fr_auto']):
+            name = str(product_row.iloc[0]['titre_fr_auto']).strip()
+        elif 'titre' in product_row.columns and pd.notna(product_row.iloc[0]['titre']):
+            name = str(product_row.iloc[0]['titre']).strip()
+        elif 'name_fr_auto' in product_row.columns and pd.notna(product_row.iloc[0]['name_fr_auto']):
+            name = str(product_row.iloc[0]['name_fr_auto']).strip()
+        elif 'name' in product_row.columns and pd.notna(product_row.iloc[0]['name']):
+            name = str(product_row.iloc[0]['name']).strip()
         
         # Nettoyer le titre
         name = clean_text(name)
         
-        # Si pas de nom, essayer avec 'titre' comme fallback
-        if not name:
-            titre = str(product_row.iloc[0]['titre']).strip() if pd.notna(product_row.iloc[0]['titre']) else ''
-            name = clean_text(titre)
-        
         # Si toujours pas de nom, utiliser le product_id
         if not name:
-            name = f"Product {product_id}"
+            name = f"Produit {product_id}"
         
         # Limiter le titre à 100 caractères (limite YouTube)
         if len(name) > 100:
             name = name[:97] + "..."
         
         print(f"  📝 Titre: {name[:50]}...")
+        
+        # Récupérer la description française
+        # Priorité: description_fr_auto > description_short_fr_auto > description_short > description
+        description_short = ''
+        if 'description_fr_auto' in product_row.columns and pd.notna(product_row.iloc[0]['description_fr_auto']):
+            description_short = str(product_row.iloc[0]['description_fr_auto']).strip()
+        elif 'description_short_fr_auto' in product_row.columns and pd.notna(product_row.iloc[0]['description_short_fr_auto']):
+            description_short = str(product_row.iloc[0]['description_short_fr_auto']).strip()
+        elif 'description_short' in product_row.columns and pd.notna(product_row.iloc[0]['description_short']):
+            description_short = str(product_row.iloc[0]['description_short']).strip()
+        elif 'description' in product_row.columns and pd.notna(product_row.iloc[0]['description']):
+            description_short = str(product_row.iloc[0]['description']).strip()
         
         # Construire la description
         description = build_description(product_id, description_short, site_url)
@@ -442,24 +507,39 @@ def main():
         )
         
         if youtube_url:
-            # Vérifier que ce n'est pas une erreur de quota
-            if youtube_url == "QUOTA_EXCEEDED":
-                print("  ⏸️  Upload arrêté: quota YouTube dépassé")
-                print("  💡 Les vidéos suivantes n'ont pas été uploadées")
-                error_count += 1
-                break  # Arrêter la boucle si quota dépassé
-            else:
-                # Mettre à jour le CSV seulement si l'upload a réussi
-                df.at[row_index, 'youtube_url'] = youtube_url
-                already_uploaded_ids.add(product_id)
-                # Sauvegarde immédiate pour ne pas perdre en cas d'arrêt brutal
-                save_csv_data(df)
-                save_tracking(already_uploaded_ids)
-                uploaded_count += 1
+            # Mettre à jour le CSV
+            df.at[row_index, 'youtube_url'] = youtube_url
+            already_uploaded_ids.add(product_id)
+            # Sauvegarde immédiate pour ne pas perdre en cas d'arrêt brutal
+            save_csv_data(df)
+            save_tracking(already_uploaded_ids)
+            uploaded_count += 1
+            print()
+            
+            # En mode test, demander confirmation avant de continuer
+            if test_mode and idx == 0:
+                print("=" * 70)
+                print("🧪 MODE TEST: Première vidéo uploadée avec succès!")
+                print(f"✅ Lien YouTube: {youtube_url}")
+                print("=" * 70)
                 print()
+                response = input("Voulez-vous continuer avec toutes les autres vidéos ? (o/n): ").strip().lower()
+                if response in ['o', 'oui', 'y', 'yes']:
+                    print()
+                    print("🚀 Continuation avec toutes les vidéos...")
+                    print()
+                    # Ajouter les vidéos restantes à la liste à traiter
+                    videos_to_process.extend(remaining_videos)
+                    test_mode = False  # Désactiver le mode test pour les suivantes
+                else:
+                    print()
+                    print("⏸️  Arrêt du script. Les autres vidéos ne seront pas uploadées.")
+                    break
         else:
             error_count += 1
             print()
+        
+        idx += 1
     
     # Sauvegarder le CSV
     print("💾 Sauvegarde du CSV...")
@@ -478,5 +558,10 @@ def main():
         print("❌ Erreur lors de la sauvegarde du CSV")
 
 if __name__ == '__main__':
-    main()
+    import argparse
+    parser = argparse.ArgumentParser(description='Script d\'upload automatique YouTube')
+    parser.add_argument('--test', action='store_true', 
+                       help='Mode test: upload uniquement la première vidéo et attend confirmation')
+    args = parser.parse_args()
+    main(test_mode=args.test)
 

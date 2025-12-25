@@ -177,7 +177,7 @@ def update_generated_pages(new_domain):
     for item in BASE_DIR.iterdir():
         if (item.is_dir() and not item.name.startswith('.') and 
             item.name not in ['APPLI:SCRIPT aliexpress', 'scripts', 'config', 'images', 'page_html', 
-                              'upload_cloudflare', 'sauv', 'CSV', '__pycache__', '.git', 'node_modules', 'upload youtube'] and
+                              'upload_cloudflare', 'sauv', 'CSV', '__pycache__', '.git', 'node_modules', 'upload youtube', 'dist'] and
             (item / 'index.html').exists()):
             lang_dirs.append(item)
     
@@ -238,7 +238,7 @@ def update_generated_pages(new_domain):
                             for item in BASE_DIR.iterdir():
                                 if (item.is_dir() and not item.name.startswith('.') and 
                                     item.name not in ['APPLI:SCRIPT aliexpress', 'scripts', 'config', 'images', 'page_html', 
-                                                      'upload_cloudflare', 'sauv', 'CSV', '__pycache__', '.git', 'node_modules', 'upload youtube'] and
+                                                      'upload_cloudflare', 'sauv', 'CSV', '__pycache__', '.git', 'node_modules', 'upload youtube', 'dist'] and
                                     (item / 'index.html').exists()):
                                     available_languages.append(item.name.lower())
                             

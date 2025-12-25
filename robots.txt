@@ -24,3 +24,6 @@ Allow: /images/
 Allow: /*.html
 Allow: /page_html/
 
+# Note: Si Cloudflare ajoute automatiquement "Content-signal: search=yes,ai-train=no"
+# cette directive n'est pas standard robots.txt et peut être ignorée par Google.
+# Pour la supprimer, vérifier les paramètres Cloudflare Pages.

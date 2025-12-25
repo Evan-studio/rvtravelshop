@@ -230,7 +230,7 @@ def update_canonical_and_hreflang(html, translations):
             and not item.name.startswith('.')
             and item.name not in ['APPLI:SCRIPT aliexpress', 'scripts', 'config', 'images', 'page_html',
                                   'upload_cloudflare', 'sauv', 'CSV', '__pycache__', '.git', 'node_modules',
-                                  'upload youtube']
+                                  'upload youtube', 'dist']
             and (item / 'index.html').exists()):
             lang = item.name.lower()
             languages.append((lang, f'/{lang}'))
